@@ -57,10 +57,12 @@ MatrixView.prototype = {
       function(event)
       {
 
-        // Meta/Control
-        if (event.metaKey)
+        // Control/Meta
+        if ((navigator.appVersion.indexOf("Mac")!=-1 && event.metaKey) ||
+	  (navigator.appVersion.indexOf("Mac")==-1 && event.ctrlKey))
+
         {
-          if (event.keyCode == 65) // Shift-A (Select All)
+          if (event.keyCode == 65) // Ctrl/Meta-A (Select All)
           {
             window.matrixView.selectAll()
             event.stop()
@@ -211,8 +213,10 @@ MatrixView.prototype = {
       )
     }
 
-    // Multiple Selection (Meta-Select)
-    else if (event && event.ctrlKey)
+    // Multiple Selection (Ctrl/Meta-Select)
+    else if (event && (
+	       (navigator.appVersion.indexOf("Mac")!=-1 && event.metaKey) ||
+		 (navigator.appVersion.indexOf("Mac")==-1 && event.ctrlKey)))
     {
       // If the element is already selected, deselect it
       if (element.hasClassName('selected'))
