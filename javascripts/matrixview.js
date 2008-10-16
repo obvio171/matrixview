@@ -49,6 +49,7 @@ MatrixView.prototype = {
     this.deleteHandler   = params['deleteHandler']
     this.selectedItems   = new Array()
     this.element         = element
+    this.firstSelectedElement = null
 
     window.matrixView    = this
 
@@ -168,6 +169,7 @@ MatrixView.prototype = {
   deselectAll: function() {
     this.element.getElementsBySelector('li.selected').invoke('removeClassName', 'selected')
     this.selectedItems.clear()
+    this.firstSelectedElement = null
     // If a custom deselect handler has been defined, call it
     if (this.deselectHandler != null)
       this.deselectHandler()
@@ -176,18 +178,15 @@ MatrixView.prototype = {
   select: function(element, event)
   {
 
+    this.firstSelectedElement = this.firstSelectedElement ?
+      this.firstSelectedElement : element
+
     // Multiple Selection (Shift-Select)
     if (event && event.shiftKey)
     {
       // Find first selected item
-      firstSelectedElement      = this.element.down('li.selected')
-      firstSelectedElementIndex = this.items().indexOf(firstSelectedElement)
+      firstSelectedElementIndex = this.items().indexOf(this.firstSelectedElement)
       selectedElementIndex      = this.items().indexOf(element)
-
-      // If the first selected element is the element that was clicked on
-      // then there's nothing for us to do.
-      if (firstSelectedElement == element)
-        return
 
       // If no elements are selected already, just select the element that
       // was clicked on.
@@ -196,20 +195,25 @@ MatrixView.prototype = {
         return
       }
 
-      siblings = null
-      if (firstSelectedElementIndex < selectedElementIndex)
-        siblings = firstSelectedElement.nextSiblings()
-      else
-        siblings = firstSelectedElement.previousSiblings()
-      done = false
-      siblings.each(
+      // we want to preserve the firstSelectedElementIndex
+      firstSelectedElement = this.firstSelectedElement
+      this.deselectAll() // nulls this.firstSelectedElement
+      this.firstSelectedElement = firstSelectedElement
+
+      if (firstSelectedElementIndex < selectedElementIndex) {
+	startIndex = firstSelectedElementIndex
+	endIndex =  selectedElementIndex + 1
+      } else {
+	startIndex = selectedElementIndex
+	endIndex =  firstSelectedElementIndex + 1
+      }
+
+      items = this.items().slice(startIndex, endIndex)
+      this.selectedItems = this.selectedItems.concat(items).uniq()
+      this.selectedItems.each(
         function(el) {
-          if (done == false) {
             el.addClassName('selected')
-            window.matrixView.selectedItems.push(el)
           }
-          if (element == el) done = true
-        }
       )
     }
 
@@ -222,6 +226,8 @@ MatrixView.prototype = {
       if (element.hasClassName('selected'))
       {
         this.selectedItems = this.selectedItems.without(element)
+	if (this.selectedItems.size() == 0)
+	  this.firstSelectedElement = null
         element.removeClassName('selected')
       }
 
@@ -237,6 +243,7 @@ MatrixView.prototype = {
     else
     {
       $$('#' + this.element.id + ' li.selected').invoke('removeClassName', 'selected')
+      this.firstSelectedElement = element
       this.selectedItems = new Array(element)
       element.addClassName('selected')
     }
